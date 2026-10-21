@@ -1,36 +1,77 @@
-# traduzir
+# traduzir — tradução de saídas de terminal GNU/Linux
 
-**Tradutor de saídas do terminal GNU/Linux**, desenvolvido com auxílio de inteligência artificial (IA).
+Tradutor de saída de comandos e páginas `man` para **português brasileiro**, executado como função Bash. Preserva, sempre que possível, comandos, opções, caminhos, URLs, estrutura e indentação.
 
-O projeto permite traduzir textos de comandos e manuais para português usando o pipe (`|`), procurando primeiro uma tradução nativa do sistema, quando disponível. Caso não exista, oferece tradução por APIs de IA, `translate-shell`, Apertium e Argos Translate.
+**Motores disponíveis:** documentação localizada (`man`/gettext), APIs de IA (OpenRouter, Gemini, OpenAI, Anthropic), `translate-shell`, Apertium e Argos Translate. Inclui cache, armazenamento organizado, rotação de chaves por provedor, tratamento de falhas e proteção de termos técnicos para tradutores convencionais.
 
-Ele também inclui um bloqueador opcional para preservar comandos, parâmetros, caminhos e outras partes técnicas que não devem ser traduzidas, além de cache e organização das traduções salvas.
+## Instalação rápida (Debian 13)
+
+```bash
+bash instalar_dependencias.sh --basico --apis
+mkdir -p ~/.local/share/traduzir
+cp traduzir.bash ~/.local/share/traduzir/
+cp credenciais_modelos.sh.example ~/.local/share/traduzir/credenciais_modelos.sh
+chmod 600 ~/.local/share/traduzir/credenciais_modelos.sh
+```
+
+Adicione ao seu `~/.bashrc`:
+
+```bash
+source "$HOME/.local/share/traduzir/traduzir.bash"
+```
+
+Recarregue com `source ~/.bashrc`. Configure as chaves no arquivo **local** `~/.local/share/traduzir/credenciais_modelos.sh` e escolha os modelos que o `llm` realmente lista.
+
+Para instalar **todos** os mecanismos opcionais:
+
+```bash
+bash instalar_dependencias.sh --tudo
+```
+
+Veja o guia [DEPENDENCIAS.md](DEPENDENCIAS.md) para comandos, configuração do Argos, pares do Apertium e diagnóstico.
+
+## Configurar a OpenRouter
+
+```bash
+llm keys set openrouter
+llm openrouter refresh
+llm openrouter models --free
+```
+
+No arquivo local `credenciais_modelos.sh`, preencha `TRADUZIR_OPENROUTER_KEYS` e edite `TRADUZIR_MODELOS_OPENROUTER` conforme `llm models list`. O plugin usa `OPENROUTER_KEY` em cada subprocesso; as chaves dos provedores permanecem separadas. A OpenRouter não precisa de `extra-openai-models.yaml`.
+
+A configuração pública contém **somente marcadores de exemplo**; nenhum segredo deve ser publicado. O arquivo local `credenciais_modelos.sh` está no `.gitignore`, e `credenciais_modelos.sh.example` é a versão compartilhável sem comentários `#`. O ZIP inclui também uma cópia inicial limpa de `credenciais_modelos.sh`, mas **não envie sua cópia pessoal preenchida ao GitHub**.
 
 ## Uso
 
 ```bash
-man sway | traduzir
-ls --help | traduzir
+printf 'Hello world\n' | traduzir
+man bash | traduzir
+ls --help 2>&1 | traduzir
 ```
 
-Após a execução, escolha o tradutor no menu, se nenhuma tradução nativa tiver sido encontrada.
+O menu permite selecionar o mecanismo de tradução e, no caso de API, escolher um modelo ou alternar entre todos. Sem terminal interativo, configure `TRADUZIR_MODO_SEM_TTY=api` no arquivo local.
 
-## Instalação
+## Configuração e cuidados
 
-1. Copie `traduzir.bash` e `credenciais_modelos.sh` para `~/.config/traduzir/`.
-2. Configure suas chaves e modelos em `credenciais_modelos.sh`, caso queira utilizar APIs de IA.
-3. Adicione ao `~/.bashrc`:
+- `TRADUZIR_MAX_TENTATIVAS=3` é o padrão do exemplo público para economizar cotas gratuitas. Ajuste conforme seu uso.
+- O `llm` precisa ter os plugins no **mesmo ambiente** que executa o comando. Quando instalado por `pipx`, utilize `pipx inject llm ...`.
+- O Argos requer um **pacote de idioma** adicional; o Apertium requer pares linguísticos instalados. Nenhum dos dois é garantido só pela instalação do motor.
+- A disponibilidade dos modelos `:free` muda. Confirme o catálogo antes de configurar IDs.
+- Antes de publicar, execute `git status` e `git diff --cached` para conferir se não há credenciais reais ou outros dados pessoais.
 
-   ```bash
-   source "$HOME/.config/traduzir/traduzir.bash"
-   ```
+## Testes
 
-4. Recarregue o terminal com `source ~/.bashrc`.
+```bash
+bash -n traduzir.bash
+bash -n credenciais_modelos.sh.example
+bash tests/test_smoke.sh
+```
 
-O projeto requer Bash e Python 3. Cada mecanismo de tradução exige suas próprias dependências. Os comandos sugeridos para instalar `translate-shell`, Apertium e Argos estão comentados em `credenciais_modelos.sh`.
+O teste rápido usa um `llm` simulado e **não faz chamadas externas nem consome cota de API**.
 
-**Observação:** o Apertium pode não dispor de um par direto inglês → português. A tradução via espanhol só é utilizada mediante escolha explícita.
+## Sobre o desenvolvimento
 
-## Desenvolvimento
+Projeto desenvolvido e aprimorado com auxílio de IA. O funcionamento de provedores externos e a qualidade da tradução dependem das versões, serviços e modelos disponíveis.
 
-Este projeto foi **criado e aprimorado com o auxílio de IA**, incluindo a implementação e a revisão de código. As traduções e a compatibilidade dos mecanismos dependem das ferramentas e dos modelos instalados.
+Para autorizar reutilização do código por terceiros, escolha e adicione uma licença ao repositório (não incluída nesta distribuição).
